@@ -13,10 +13,16 @@ using std::string;
 using std::to_string;
 using std::cout;
 using std::endl;
-
 }
 
 namespace btree {
+void node::check_invariants() {
+  for(auto i = size + 1; i != range_max + 1; ++i) {
+    if(children[i].get() != nullptr) {
+      fprintf(stderr, "node found with child past size. Debugging suggested.");
+    }
+  }
+}
 
 bool node::is_leaf() {
   for(size_t i = 0, end = size; i != end; ++i) {
@@ -33,163 +39,119 @@ size_t node::find_pos(const key_t& key) {
 }
 
 void node::place_key(const key_t& key, const size_t pos) {
+  check_invariants();
+
   if(size > 0) {
     for(size_t i = size; i > pos; --i) {
       keys[i] = keys[i - 1];
+      if((bool) children[i+1])
+        size = size; // debug
       children[i+1] = move(children[i]);
     }
   }
   keys[pos] = key;
   ++size;
+
+  check_invariants();
 }
 
 void node::insert(key_t key) {
-  if(key == 547)
-    key = key; // debug
+  check_invariants();
+
+  // assert(parent)                   // required by split
+  // assert(parent->size < range_max) // required by split
+
   if(!is_leaf()) {
-    const size_t key_pos = find_pos(key);
+    auto key_pos = find_pos(key);
     if(!children[key_pos])
       children[key_pos] = unique_ptr<node>(new node(this, tree));
+    else if(children[key_pos]->size == range_max) {
+      split(children[key_pos].get());
+      key_pos = find_pos(key);
+    }
     children[key_pos]->insert(key);
+
+    check_invariants();
     return;
   }
 
-  if(size < range_max) {
-    place_key(key, find_pos(key));
-    return;
-  }
+  place_key(key, find_pos(key));
 
-//  node* new_node = 
-  unique_ptr<node> empty;
-  split(key, empty);
-/*
-  if(key > keys[size - 1])
-     new_node->place_key(key, new_node->find_pos(key));
-  else
-    place_key(key, find_pos(key));
-
-  if(key > keys[size - 1] && key < new_node->keys[0])
-    key = key; // debug
-*/
-}
-
-/// make a new root, if this node is the root
-/// @return the newly created sibling to this node
-node* node::reroot() {
-  /*
-  cout << "rerooting " << key << " keys [";
-  for(size_t i = 0, end = size; i != end; ++i)
-    cout << keys[i] << ", ";
-  cout << "]" << endl;
-  cout << "otherkeys [";
-  for(size_t i = 0, end = other->size; i != end; ++i)
-    cout << other->keys[i] << ", ";
-  cout << "]" << endl;
-  */
-
-  auto new_root = unique_ptr<node>(new node(nullptr, tree));
-  auto new_sibling = unique_ptr<node>(new node(new_root.get(), tree));
-  parent = new_root.get();
-  
-  const size_t median = range_max / 2;
-  const key_t median_key = keys[median];
-  for(int i = range_max - 1, new_sibling_i = median - 1, end = median; i != end; --i, --new_sibling_i) {
-    new_sibling->keys[new_sibling_i] = keys[i];
-    new_sibling->children[i + 1] = move(children[i + 1]);
-    ++new_sibling->size;
-    --size;
-  }
-  new_sibling->children[0] = move(children[median]);
-
-  new_root->keys[0] = median_key;
-  new_root->children[0] = move(tree->root); // tree->root == this
-  new_root->children[1] = move(new_sibling);
-  new_root->size = 1;
-
-  tree->root = move(new_root);
-}
-
-// splits, adds the new node to the parent, and returns it
-// new node is on the right/greater, existing is left/lesser
-node* node::split(key_t key, unique_ptr<node>& other) {
-  cout << "splitting " << key << " min " << keys[0] << " max " << keys[size - 1] << " size " << size << endl;
-
-
-  unique_ptr<node> new_node(new node(parent, tree));
-  node* new_node_raw = new_node.get();
-
-  key_t all_keys[range_max + 1];
-  std::unique_ptr<node> all_children[range_max + 2];
-  {
-    // this could be done more efficiently. IMO it's easier to read this way
-    size_t i = 0;
-    all_children[0] = move(children[0]);
-    for(; i < range_max && keys[i] < key; ++i) {
-      all_keys[i] = keys[i];
-      all_children[i + 1] = move(children[i + 1]);
-    }
-    all_keys[i] = key;
-    all_children[i + 1] = move(other);
-    for(; i < range_max; ++i) {
-      all_keys[i + 1] = keys[i];
-      all_children[i + 2] = move(children[i + 1]);
-    }
-    size = 0;
-    new_node->size = 0;
-  }
-
-  const size_t median = range_max / 2 + 1;
-  const key_t median_key = all_keys[median];
-
-  cout << "median chosen " << median << " key " << median_key << " of [";
-  for(size_t i = 0, end = range_max + 1; i != end; ++i)
-    cout << all_keys[i] << ", ";
-  cout << "]" << endl;
-
-  children[0] = move(all_children[0]);
-  for(size_t i = 0, end = median; i != end; ++i) {
-    keys[i] = all_keys[i];
-    children[i + 1] = move(all_children[i + 1]);
-    ++size;
-  }
-  new_node->children[0]  = move(all_children[median + 1]);
-  for(size_t i = median + 1, new_node_i = 0, end = range_max + 1; i != end; ++i, ++new_node_i) {
-    new_node->keys[new_node_i] = all_keys[i];
-    new_node->children[new_node_i + 1] = move(all_children[i + 1]);
-    ++new_node->size;
-  }
-
-  if(parent == nullptr) {
-    auto new_root = unique_ptr<node>(new node(nullptr, tree));
-    new_root->children[0] = move(tree->root); // tree->root == this
-    tree->root = move(new_root);    
-    parent = tree->root.get();
-  }
-
-  parent->add(median_key, new_node);
-  return new_node_raw;
+  check_invariants();
 }
 
 void node::add(key_t key, unique_ptr<node>& other) {
-  cout << "adding " << key << " min " << keys[0] << " max " << keys[size - 1] << " size " << size << endl;
-  if(size < range_max) {
-    const auto pos = find_pos(key);
-    place_key(key, pos);
-    children[pos + 1] = move(other);
-    return;
-  }
+  check_invariants();
 
-//  node* new_node = 
-  split(key, other);
-/*
-  if(new_node->keys[0] <= key)
-    new_node->add(key, other);
-  else
-    add(key, other);
- 
-  if(keys[size - 1] < key && new_node->keys[0] > key)
-    key = key;
-*/
+
+  // assert(size < range_max)
+  // assert(other.get() != nullptr)
+
+  const auto pos = find_pos(key);
+  place_key(key, pos);
+  children[pos + 1] = move(other);
+  children[pos + 1]->parent = this;
+
+  check_invariants();
+}
+
+/// @todo make member of node. static??
+void node::split(node* old_node) {
+  old_node->check_invariants();
+  old_node->parent->check_invariants();
+
+  // assert(old_node)
+  // assert(old_node->parent)
+  // assert(old_node->parent->size < range_max)
+
+  unique_ptr<node> new_node(new node(old_node->parent, old_node->tree));
+  node* new_node_raw = new_node.get();
+
+  const size_t median = range_max / 2;
+  const key_t median_key = old_node->keys[median];
+
+  if((bool) old_node->children[median + 1]) {
+    new_node->children[0] = move(old_node->children[median + 1]);
+    new_node->children[0]->parent = new_node_raw;
+  }
+  for(size_t i = median + 1, new_node_i = 0, end = range_max; i != end; ++i, ++new_node_i) {
+    new_node->keys[new_node_i] = old_node->keys[i];
+    if(old_node->children[i + 1]) {
+      new_node->children[new_node_i + 1] = move(old_node->children[i + 1]);
+      new_node->children[new_node_i + 1]->parent = new_node.get();
+    }
+    ++new_node->size;
+    --old_node->size;
+  }
+  --old_node->size; // remove the median
+
+  old_node->parent->add(median_key, new_node);
+
+  old_node->check_invariants();
+  new_node_raw->check_invariants();
+  old_node->parent->check_invariants();
+}
+
+void tree::reroot() {
+  // assert(root)
+  root.get()->check_invariants();
+
+  auto new_root = unique_ptr<node>(new node(nullptr, this));
+  auto old_root_raw = root.get();
+  root->parent = new_root.get();
+  new_root->children[0] = move(root);
+  new_root->children[0]->parent = new_root.get();
+  root = move(new_root);
+  node::split(old_root_raw);
+
+  root.get()->check_invariants();
+  old_root_raw->check_invariants();
+}
+
+void tree::insert(key_t key) {
+  if(root->size == range_max)
+    reroot();
+  root->insert(key);
 }
 
 string node::str() {

@@ -45,8 +45,8 @@ ord_t random_ord(ord_t min, ord_t max) {
 } // namespace
 
 int main(int argc, char* argv[]) {
-//  srand(time(NULL));
-  srand(42); // set a deterministic seed
+  srand(time(NULL));
+//  srand(42); // set a deterministic seed
 
 /*
   app_arguments args = parseArgs(argc, (const char**)argv);
@@ -58,15 +58,12 @@ int main(int argc, char* argv[]) {
 
   btree::tree tree;
 
-  const auto NUM = 60u;
-//  const auto RANGE = 100u;
-//  const auto SIZE_RANGE = 10u;
+  const auto NUM = 1000u;
+  const auto RANGE = 1000u;
   for(size_t i = NUM, end = 0; i != end; --i) {
-    const key_t key = rand() % 1000;
+    const key_t key = rand() % RANGE;
 //    const key_t key = i;
-    cout << "inserting " <<  key << std::endl;
     tree.insert(key);
-    cout << tree.str() << std::endl << std::endl;
   }
 
   cout << tree.str() << std::endl;
