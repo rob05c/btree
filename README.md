@@ -1,6 +1,8 @@
 btree
 =====
 
-A C++11 B-tree
+A C++11 B-tree. 
 
-Do not use for real work! Currently has a bug where splitting sometimes results in a non-sorted tree.
+Uses Mond-Raz single pass splitting to reduce memory accesses. 
+
+Currently only inserts (no search or delete).
