@@ -15,31 +15,36 @@ typedef int key_t;
 
 class tree;
 
-struct node {
+class node {
+public:
   node(node* parent_, tree* tree_) : size(0), parent(parent_), tree(tree_) {}
-  void insert(key_t key);
-  std::string str();
-  bool is_leaf();
-  size_t find_pos(const key_t& key);
-  void place_key(const key_t& key, const size_t pos);
-  node* split(key_t key, std::unique_ptr<node>& other);
-  node* reroot();
-  void add(key_t key, std::unique_ptr<node>& other);
 
-  size_t size;
-  key_t keys[range_max];
-  std::unique_ptr<node> children[range_max + 1];
-  node* parent;
+  void        insert(key_t key);
+  std::string str();
+
+private:
+  node*  split(key_t key, std::unique_ptr<node>& other);
+  node*  reroot();
+  void   add(key_t key, std::unique_ptr<node>& other);
+  bool   is_leaf();
+  size_t find_pos(const key_t& key);
+  void   place_key(const key_t& key, const size_t pos);
+
   btree::tree* tree;
+  node*        parent;
+  size_t                size;
+  key_t                 keys[range_max];
+  std::unique_ptr<node> children[range_max + 1];
 };
 
 class tree {
 public:
   tree() : root(std::unique_ptr<node>(new node(nullptr, this))) {}
-  void insert(key_t key) {root->insert(key);}
+  void        insert(key_t key) {root->insert(key);}
   std::string str();
-
+private:
   std::unique_ptr<node> root;
+  friend class node; // nodes need access to the root, to reroot()
 };
 
 } // namespace rtree
