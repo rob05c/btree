@@ -3,6 +3,7 @@
 #include <cmath>
 #include <string>
 #include <iostream>
+#include <cassert>
 
 namespace {
 using std::unique_ptr;
@@ -62,8 +63,6 @@ void node::place_key(const key_t& key, const size_t pos) {
 void node::insert(key_t key) {
   check_invariants();
 
-  // assert(parent)                   // required by split
-  // assert(parent->size < range_max) // required by split
 
   if(!is_leaf()) {
     auto key_pos = find_pos(key);
@@ -86,10 +85,8 @@ void node::insert(key_t key) {
 
 void node::add(key_t key, unique_ptr<node>& other) {
   check_invariants();
-
-
-  // assert(size < range_max)
-  // assert(other.get() != nullptr)
+  assert(size < range_max);
+  assert(other.get() != nullptr);
 
   const auto pos = find_pos(key);
   place_key(key, pos);
@@ -104,9 +101,9 @@ void node::split(node* old_node) {
   old_node->check_invariants();
   old_node->parent->check_invariants();
 
-  // assert(old_node)
-  // assert(old_node->parent)
-  // assert(old_node->parent->size < range_max)
+  assert(old_node);
+  assert(old_node->parent);
+  assert(old_node->parent->size < range_max);
 
   unique_ptr<node> new_node(new node(old_node->parent));
   node* new_node_raw = new_node.get();
@@ -137,7 +134,7 @@ void node::split(node* old_node) {
 }
 
 void tree::reroot() {
-  // assert(root)
+  assert(root);
   root.get()->check_invariants();
 
   auto new_root = unique_ptr<node>(new node(nullptr));
