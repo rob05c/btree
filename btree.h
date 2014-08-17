@@ -17,7 +17,7 @@ class tree;
 
 class node {
 public:
-  node(node* parent_, tree* tree_) : size(0), parent(parent_), tree(tree_) {}
+  node(node* parent_) : size(0), parent(parent_)  {}
 
   void        insert(key_t key);
   std::string str();
@@ -31,7 +31,6 @@ private:
   size_t find_pos(const key_t& key);
   void   place_key(const key_t& key, const size_t pos);
 
-  btree::tree* tree;
   node*        parent;
   size_t                size;
   key_t                 keys[range_max];
@@ -42,7 +41,7 @@ private:
 
 class tree {
 public:
-  tree() : root(std::unique_ptr<node>(new node(nullptr, this))) {}
+  tree() : root(std::unique_ptr<node>(new node(nullptr))) {}
   void        insert(key_t key);
   std::string str();
 private:

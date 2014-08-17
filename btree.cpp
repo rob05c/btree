@@ -68,7 +68,7 @@ void node::insert(key_t key) {
   if(!is_leaf()) {
     auto key_pos = find_pos(key);
     if(!children[key_pos])
-      children[key_pos] = unique_ptr<node>(new node(this, tree));
+      children[key_pos] = unique_ptr<node>(new node(this));
     else if(children[key_pos]->size == range_max) {
       split(children[key_pos].get());
       key_pos = find_pos(key);
@@ -108,7 +108,7 @@ void node::split(node* old_node) {
   // assert(old_node->parent)
   // assert(old_node->parent->size < range_max)
 
-  unique_ptr<node> new_node(new node(old_node->parent, old_node->tree));
+  unique_ptr<node> new_node(new node(old_node->parent));
   node* new_node_raw = new_node.get();
 
   const size_t median = range_max / 2;
@@ -140,7 +140,7 @@ void tree::reroot() {
   // assert(root)
   root.get()->check_invariants();
 
-  auto new_root = unique_ptr<node>(new node(nullptr, this));
+  auto new_root = unique_ptr<node>(new node(nullptr));
   auto old_root_raw = root.get();
   root->parent = new_root.get();
   new_root->children[0] = move(root);
