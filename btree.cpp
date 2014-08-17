@@ -19,15 +19,17 @@ using std::endl;
 namespace btree {
 void node::check_invariants() {
 #ifdef NDEBUG
-  return
+  return;
 #else
-  for(auto i = size + 1; i != range_max + 1; ++i)
+  for(auto i = size + 1, end = range_max + 1; i != end; ++i)
     assert(children[i].get() == nullptr);
+  for(auto i = 0ul, end = size; i != end; ++i)
+    assert(children[i].get() == nullptr || children[i].get()->parent == this);
 #endif
 }
 
 bool node::is_leaf() {
-  for(size_t i = 0, end = size; i != end; ++i) {
+  for(auto i = 0ul, end = size; i != end; ++i) {
     if((bool) children[i])
       return false;
   }
@@ -36,14 +38,14 @@ bool node::is_leaf() {
 
 size_t node::find_pos(const key_t& key) {
   size_t pos = 0;
-  for(size_t end = size; pos != end && keys[pos] < key; ++pos);
+  for(auto end = size; pos != end && keys[pos] < key; ++pos);
   return pos;
 }
 
 void node::place_key(const key_t& key, const size_t pos) {
   check_invariants();
 
-  for(size_t i = size; i > pos; --i) {
+  for(auto i = size; i > pos; --i) {
     keys[i] = keys[i - 1];
     assert(!children[i+1]);
     children[i+1] = move(children[i]);
