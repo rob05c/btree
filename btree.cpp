@@ -46,14 +46,12 @@ size_t node::find_pos(const key_t& key) {
 void node::place_key(const key_t& key, const size_t pos) {
   check_invariants();
 
-  if(size > 0) {
-    for(size_t i = size; i > pos; --i) {
-      keys[i] = keys[i - 1];
-      if((bool) children[i+1])
-        size = size; // debug
-      children[i+1] = move(children[i]);
-    }
+  for(size_t i = size; i > pos; --i) {
+    keys[i] = keys[i - 1];
+    assert(!children[i+1]);
+    children[i+1] = move(children[i]);
   }
+
   keys[pos] = key;
   ++size;
 
@@ -143,6 +141,7 @@ void tree::reroot() {
   new_root->children[0] = move(root);
   new_root->children[0]->parent = new_root.get();
   root = move(new_root);
+
   node::split(old_root_raw);
 
   root.get()->check_invariants();
@@ -157,7 +156,7 @@ void tree::insert(key_t key) {
 
 string node::str() {
   string s;
-//  s += "["; // debug
+
   for(size_t i = 0, end = size; i != end; ++i) {
     if((bool) children[i])
       s += children[i]->str() + ", ";
@@ -168,7 +167,7 @@ string node::str() {
     s += children[size]->str();
   else
     s.erase(s.end() -2, s.end()); // erase the last ", "
-//  s += "]"; // debug
+
   return s;
 }
 
