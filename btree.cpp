@@ -21,11 +21,8 @@ void node::check_invariants() {
 #ifdef NDEBUG
   return
 #else
-  for(auto i = size + 1; i != range_max + 1; ++i) {
-    if(children[i].get() != nullptr) {
-      fprintf(stderr, "node found with child past size. Debugging suggested.");
-    }
-  }
+  for(auto i = size + 1; i != range_max + 1; ++i)
+    assert(children[i].get() == nullptr);
 #endif
 }
 
